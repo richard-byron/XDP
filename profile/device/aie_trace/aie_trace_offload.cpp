@@ -79,6 +79,8 @@ AIETraceOffload::~AIETraceOffload()
   stopOffload();
   if (offloadThread.joinable())
     offloadThread.join();
+  if (bufferInitialized)
+    endReadTrace();
 }
 
 bool AIETraceOffload::setupPSKernel() {
@@ -487,7 +489,10 @@ void AIETraceOffload::startOffload()
 
 void AIETraceOffload::continuousOffload()
 {
-  if (!bufferInitialized && !initReadTrace()) {
+  if (bufferInitialized) {
+    xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT", "initReadTrace should not have been called when using continuous offload, potential race condition");
+  }  
+  else if (!initReadTrace()) {
     offloadFinished();
     return;
   }
