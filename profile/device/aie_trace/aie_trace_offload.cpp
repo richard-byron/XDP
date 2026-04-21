@@ -38,9 +38,14 @@
 #include "core/edge/user/shim.h"
 #endif
 
+void AIETraceOffload_trap()
+{
+  xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT", "Blah");
+}
+
 namespace xdp {
 
-
+  
 AIETraceOffload::AIETraceOffload
   ( void* handle, uint64_t id
   , PLDeviceIntf* dInt
@@ -80,6 +85,7 @@ AIETraceOffload::~AIETraceOffload()
   if (offloadThread.joinable())
     offloadThread.join();
   if (bufferInitialized)
+    AIETraceOffload_trap();
     endReadTrace();
 }
 
@@ -492,9 +498,13 @@ void AIETraceOffload::continuousOffload()
   if (bufferInitialized) {
     xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT", "initReadTrace should not have been called when using continuous offload, potential race condition");
   }  
-  else if (!initReadTrace()) {
-    offloadFinished();
-    return;
+  else
+  {
+    AIETraceOffload_trap();
+    if (!initReadTrace()) {
+      offloadFinished();
+      return;
+    }
   }
 
   while (keepOffloading()) {
